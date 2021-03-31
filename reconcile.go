@@ -111,24 +111,19 @@ func (r *Reconsiler) loop() {
 					// Errors not important; we'll just try again to close the gap next time round the loop
 				}
 			}
+
+			delete(byOwner, d.Id.String())
 		}
 
-		for ownerID, owned := range byOwner {
-			var found bool
-			for _, desired := range desired {
-				if ownerID == desired.Id.String() {
-					found = true
-				}
-			}
-
-			if !found {
-				for _, o := range owned {
-					r.deleteContainer(o)
-				}
+		// Anything now left in byOwner has an owner label, so it's managed by us, but is no-longer desired; so delete.
+		// This has the happy side-effect of cleaning up orphaned containers from previous invocations.
+		for _, owned := range byOwner {
+			for _, o := range owned {
+				r.deleteContainer(o)
 			}
 		}
 
-		// TODO: Schedule another reconsiliation, since I cba to wait for ack / check results, think of this as a retry. If that next loop has to do something (ie try again), it'll also scheudle another spin, hence another retry
+		// TODO: Schedule another reconciliation, since I cba to wait for ack / check results, think of this as a retry. If that next loop has to do something (ie try again), it'll also scheudle another spin, hence another retry
 	}
 }
 
